@@ -1,5 +1,4 @@
 import { Connection } from 'jsforce';
-import { z } from 'zod';
 
 // Define integration types
 export type IntegrationType = 'whatsapp' | 'slack' | 'email' | 'webhook' | 'custom';
@@ -15,6 +14,9 @@ export interface IntegrationConfig {
     apiKey?: string;
     clientId?: string;
     clientSecret?: string;
+    phoneNumber?: string;  // Added for WhatsApp
+    channel?: string;      // Added for Slack
+    [key: string]: any;    // Allow additional properties
   };
   objectName: string;
   triggerEvents: TriggerEvent[];
@@ -73,7 +75,9 @@ export const MANAGE_INTEGRATIONS = {
               token: { type: "string", description: "Bearer token or API token" },
               apiKey: { type: "string", description: "API key" },
               clientId: { type: "string", description: "OAuth client ID" },
-              clientSecret: { type: "string", description: "OAuth client secret" }
+              clientSecret: { type: "string", description: "OAuth client secret" },
+              phoneNumber: { type: "string", description: "Phone number for WhatsApp" },
+              channel: { type: "string", description: "Channel for Slack" }
             }
           },
           objectName: {
