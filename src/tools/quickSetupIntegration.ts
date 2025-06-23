@@ -124,7 +124,6 @@ function createQuickSetupConfig(args: QuickSetupArgs): IntegrationConfig {
   const baseConfig = {
     name: `${args.type}_${args.objectName}_${Date.now()}`,
     objectName: args.objectName,
-    triggerEvents: ['insert'] as Array<'insert' | 'update' | 'delete'>,
     messageTemplate: args.config.messageTemplate,
     condition: args.config.condition,
     active: true
@@ -134,9 +133,10 @@ function createQuickSetupConfig(args: QuickSetupArgs): IntegrationConfig {
     case 'whatsapp_lead':
       return {
         ...baseConfig,
-        type: 'whatsapp',
+        type: 'whatsapp' as const,
         endpoint: 'https://graph.facebook.com/v17.0/YOUR_PHONE_NUMBER_ID/messages',
-        authType: 'bearer',
+        authType: 'bearer' as const,
+        triggerEvents: ['insert'],
         authConfig: {
           token: args.config.whatsappApiToken,
           phoneNumber: args.config.phoneNumber
@@ -146,21 +146,22 @@ function createQuickSetupConfig(args: QuickSetupArgs): IntegrationConfig {
     case 'slack_opportunity':
       return {
         ...baseConfig,
-        type: 'slack',
+        type: 'slack' as const,
         endpoint: args.config.slackWebhookUrl || '',
-        authType: 'none',
+        authType: 'none' as const,
+        triggerEvents: ['insert', 'update'],
         authConfig: {
           channel: args.config.slackChannel || '#sales'
-        },
-        triggerEvents: ['insert', 'update']
+        }
       };
 
     case 'email_case':
       return {
         ...baseConfig,
-        type: 'email',
+        type: 'email' as const,
         endpoint: args.config.emailEndpoint || 'https://api.sendgrid.com/v3/mail/send',
-        authType: 'api_key',
+        authType: 'api_key' as const,
+        triggerEvents: ['insert'],
         authConfig: {
           apiKey: args.config.emailApiKey
         }
@@ -169,9 +170,10 @@ function createQuickSetupConfig(args: QuickSetupArgs): IntegrationConfig {
     case 'webhook_custom':
       return {
         ...baseConfig,
-        type: 'webhook',
+        type: 'webhook' as const,
         endpoint: args.config.webhookUrl || '',
-        authType: 'none',
+        authType: 'none' as const,
+        triggerEvents: ['insert'],
         authConfig: args.config.webhookHeaders || {}
       };
 
