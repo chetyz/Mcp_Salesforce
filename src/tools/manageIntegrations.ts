@@ -1,4 +1,4 @@
-import { Connection } from 'jsforce';
+import { Connection, RecordResult } from 'jsforce';
 
 // Define integration types
 export type IntegrationType = 'whatsapp' | 'slack' | 'email' | 'webhook' | 'custom';
@@ -10,13 +10,7 @@ export interface IntegrationConfig {
   endpoint: string;
   authType: 'none' | 'bearer' | 'api_key' | 'oauth';
   authConfig?: {
-    token?: string;
-    apiKey?: string;
-    clientId?: string;
-    clientSecret?: string;
-    phoneNumber?: string;  // Added for WhatsApp
-    channel?: string;      // Added for Slack
-    [key: string]: any;    // Allow additional properties
+    [key: string]: any;    // Allow any additional properties
   };
   objectName: string;
   triggerEvents: TriggerEvent[];
@@ -70,15 +64,7 @@ export const MANAGE_INTEGRATIONS = {
           },
           authConfig: {
             type: "object",
-            description: "Authentication configuration",
-            properties: {
-              token: { type: "string", description: "Bearer token or API token" },
-              apiKey: { type: "string", description: "API key" },
-              clientId: { type: "string", description: "OAuth client ID" },
-              clientSecret: { type: "string", description: "OAuth client secret" },
-              phoneNumber: { type: "string", description: "Phone number for WhatsApp" },
-              channel: { type: "string", description: "Channel for Slack" }
-            }
+            description: "Authentication configuration (flexible object)"
           },
           objectName: {
             type: "string",
@@ -171,7 +157,23 @@ async function createIntegration(conn: Connection, config: IntegrationConfig) {
   };
 
   const result = await conn.sobject('Integration_Config__c').create(integrationRecord);
-  steps.push(`✅ Created integration config record: ${result.id}`);
+  
+  // Handle both success and error cases
+  if (Array.isArray(result)) {
+    const firstResult = result[0] as RecordResult;
+    if (firstResult.success && firstResult.id) {
+      steps.push(`✅ Created integration config record: ${firstResult.id}`);
+    } else {
+      throw new Error(`Failed to create record: ${JSON.stringify(firstResult)}`);
+    }
+  } else {
+    const singleResult = result as RecordResult;
+    if (singleResult.success && singleResult.id) {
+      steps.push(`✅ Created integration config record: ${singleResult.id}`);
+    } else {
+      throw new Error(`Failed to create record: ${JSON.stringify(singleResult)}`);
+    }
+  }
 
   // Step 3: Create or update trigger for the object
   const triggerCode = generateTriggerCode(config);
@@ -281,7 +283,9 @@ async function deleteIntegration(conn: Connection, integrationName: string) {
     throw new Error(`Integration "${integrationName}" not found`);
   }
 
-  await conn.sobject('Integration_Config__c').delete(results.records[0].Id);
+  // Type-safe access to record Id
+  const recordId = (results.records[0] as any).Id;
+  await conn.sobject('Integration_Config__c').delete(recordId);
 
   return {
     content: [{
@@ -452,8 +456,12 @@ function generateUtilityClass(): string {
     
     private static String getPhoneFromRecord(SObject record) {
         // Try common phone fields
-        if (record.get('Phone') != null) return (String) record.get('Phone');
-        if (record.get('MobilePhone') != null) return (String) record.get('MobilePhone');
+        try {
+            if (record.get('Phone') != null) return (String) record.get('Phone');
+            if (record.get('MobilePhone') != null) return (String) record.get('MobilePhone');
+        } catch (Exception e) {
+            System.debug('Error getting phone: ' + e.getMessage());
+        }
         return null;
     }
     
