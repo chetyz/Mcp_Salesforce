@@ -124,7 +124,7 @@ function createQuickSetupConfig(args: QuickSetupArgs): IntegrationConfig {
   const baseConfig = {
     name: `${args.type}_${args.objectName}_${Date.now()}`,
     objectName: args.objectName,
-    triggerEvents: ['insert'] as const,
+    triggerEvents: ['insert'] as Array<'insert' | 'update' | 'delete'>,
     messageTemplate: args.config.messageTemplate,
     condition: args.config.condition,
     active: true
